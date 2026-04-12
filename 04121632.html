@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <title>班表支援試算系統 - 終極穩定版</title>
+    <style>
+        body { font-family: "Segoe UI", "Microsoft JhengHei", sans-serif; background: #f8fafc; padding: 20px; color: #334155; }
+        .container { max-width: 1100px; margin: 0 auto; background: white; padding: 35px; border-radius: 16px; box-shadow: 0 10px 25px rgba(0,0,0,0.05); }
+        h2 { border-left: 8px solid #3b82f6; padding-left: 15px; margin-bottom: 30px; color: #1e293b; letter-spacing: 1px; }
+        .control-panel { background: #f1f5f9; padding: 25px; border-radius: 12px; margin-bottom: 30px; display: flex; flex-wrap: wrap; gap: 20px; align-items: flex-end; }
+        .input-group { display: flex; flex-direction: column; gap: 6px; }
+        label { font-weight: 700; font-size: 14px; color: #475569; }
+        input, select { padding: 10px 14px; border: 1.5px solid #cbd5e1; border-radius: 8px; outline: none; background: white; }
+        input:focus, select:focus { border-color: #3b82f6; ring: 2px rgba(59, 130, 246, 0.2); }
+        button { padding: 12px 30px; background: #3b82f6; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 700; font-size: 16px; transition: 0.2s; }
+        button:hover { background: #2563eb; transform: translateY(-1px); }
+        .base-table { width: 100%; border-collapse: collapse; font-size: 14px; margin-bottom: 35px; border-radius: 8px; overflow: hidden; }
+        .base-table th, .base-table td { border: 1px solid #e2e8f0; padding: 12px; text-align: center; }
+        .base-table th { background: #1e293b; color: white; font-weight: 600; }
+        .highlight-row { background: #fefce8; }
+        .rest-cell { color: #94a3b8; font-style: italic; }
+        .solution-card { border: 2px solid #10b981; border-radius: 10px; margin-bottom: 25px; background: white; box-shadow: 0 4px 12px rgba(16, 185, 129, 0.1); }
+        .solution-title { background: #10b981; color: white; padding: 12px 20px; font-weight: 700; font-size: 18px; }
+        .solution-body { padding: 20px; }
+        .day-line { padding: 12px 0; border-bottom: 1px dashed #e2e8f0; font-size: 16px; display: flex; gap: 15px; }
+        .day-line:last-child { border-bottom: none; }
+        .date-tag { font-weight: 800; color: #3b82f6; min-width: 100px; }
+        .error-msg { background: #fee2e2; color: #b91c1c; padding: 20px; border-radius: 8px; font-weight: 700; text-align: center; border: 1px solid #fecaca; }
+        .hidden { display: none; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>班表支援試算系統 <small style="font-size: 12px; color: #64748b; font-weight: 400;">(初試正常)</small></h2>
+    
+    <div class="control-panel">
+        <div class="input-group">
+            <label>請假模式</label>
+            <select id="leaveMode" onchange="toggleMode()">
+                <option value="single">請假一日</option>
+                <option value="multi" selected>請假多日</option>
+            </select>
+        </div>
+        <div class="input-group">
+            <label id="dateLabel">開始日期</label>
+            <input type="date" id="startDate" onchange="handleDateChange()">
+        </div>
+        <div id="endDateGroup" class="input-group">
+            <label>結束日期</label>
+            <input type="date" id="endDate">
+        </div>
+        <div class="input-group">
+            <label>請假股別</label>
+            <select id="leaveStock">
+                <option value="" disabled selected>請選擇股別</option>
+                <option value="A">A 股</option>
+                <option value="B">B 股</option>
+                <option value="C">C 股</option>
+                <option value="D">D 股</option>
+            </select>
+        </div>
+        <button onclick="runCalculation()">開始生成方案</button>
+    </div>
+
+    <div id="baseOutputArea">
+        <div id="tableHeader" class="hidden" style="margin-bottom:10px; font-weight:bold; color:#1e293b;">基準班表 (前後五日參考)</div>
+        <div id="tableContent"></div>
+    </div>
+
+    <div id="resultOutputArea">
+        <div id="resultHeader" class="hidden" style="margin-bottom:10px; font-weight:bold; color:#1e293b;">可行方案列表</div>
+        <div id="resultContent"></div>
+    </div>
+</div>
+
+<script>
+const SYSTEM = {
+    anchor: new Date('2026-04-01'),
+    initPos: { A: 10, B: 15, C: 20, D: 5 }, 
+    cycle: 20,
+    codes: {
+        1:'N1', 2:'N2', 3:'N3', 4:'N4', 5:'N5', 6:'NR1', 7:'NR2',
+        8:'A1', 9:'A2', 10:'A3', 11:'A4', 12:'A5', 13:'AR',
+        14:'M1', 15:'M2', 16:'M3', 17:'M4', 18:'M5', 19:'MR1', 20:'MR2'
+    }
+};
+
+window.onload = () => {
+    const today = new Date().toISOString().split('T')[0];
+    document.getElementById('startDate').value = today;
+    handleDateChange();
+};
+
+function toggleMode() {
+    const isSingle = document.getElementById('leaveMode').value === 'single';
+    document.getElementById('endDateGroup').classList.toggle('hidden', isSingle);
+    document.getElementById('dateLabel').innerText = isSingle ? "請假日期" : "開始日期";
+    if (!isSingle) handleDateChange();
+}
+
+function handleDateChange() {
+    if (document.getElementById('leaveMode').value === 'multi') {
+        const start = new Date(document.getElementById('startDate').value);
+        if(!isNaN(start)){
+            start.setDate(start.getDate() + 1);
+            document.getElementById('endDate').value = start.toISOString().split('T')[0];
+        }
+    }
+}
+
+function getShift(stock, dateStr) {
+    const target = new Date(dateStr);
+    target.setHours(0,0,0,0);
+    const diff = Math.round((target - SYSTEM.anchor) / (1000 * 60 * 60 * 24));
+    let pos = (SYSTEM.initPos[stock] + diff - 1) % SYSTEM.cycle + 1;
+    if (pos <= 0) pos += SYSTEM.cycle;
+    return SYSTEM.codes[pos];
+}
+
+function getNextDay(dateStr) {
+    let d = new Date(dateStr);
+    d.setDate(d.getDate() + 1);
+    return d.toISOString().split('T')[0];
+}
+
+function runCalculation() {
+    const mode = document.getElementById('leaveMode').value;
+    const sStr = document.getElementById('startDate').value;
+    const eStr = mode === 'single' ? sStr : document.getElementById('endDate').value;
+    const lStock = document.getElementById('leaveStock').value;
+    if (!lStock) return alert("請選擇股別");
+
+    const dates = [];
+    let cur = new Date(sStr);
+    let end = new Date(eStr);
+    while(cur <= end) {
+        dates.push(cur.toISOString().split('T')[0]);
+        cur.setDate(cur.getDate() + 1);
+    }
+
+    renderTable(sStr, eStr, lStock);
+    const results = solve(dates, lStock);
+    renderResults(results);
+}
+
+function renderTable(s, e, lStock) {
+    document.getElementById('tableHeader').classList.remove('hidden');
+    let vs = new Date(s); vs.setDate(vs.getDate() - 5);
+    let ve = new Date(e); ve.setDate(ve.getDate() + 5);
+    let html = `<table class="base-table"><tr><th>日期</th><th>A股</th><th>B股</th><th>C股</th><th>D股</th></tr>`;
+    for(let d = new Date(vs); d <= ve; d.setDate(d.getDate()+1)) {
+        const ds = d.toISOString().split('T')[0];
+        const isTarget = ds >= s && ds <= e;
+        html += `<tr class="${isTarget ? 'highlight-row' : ''}"><td>${ds}</td>`;
+        ['A','B','C','D'].forEach(stk => {
+            const code = getShift(stk, ds);
+            const isR = code.includes('R') || code === 'AR';
+            html += `<td class="${isR ? 'rest-cell' : ''}">${(stk === lStock && isTarget) ? '<u>'+code+'</u>' : code}</td>`;
+        });
+        html += `</tr>`;
+    }
+    html += `</table>`;
+    document.getElementById('tableContent').innerHTML = html;
+}
+
+function solve(dates, lStock) {
+    const others = ['A','B','C','D'].filter(s => s !== lStock);
+
+    function backtrack(idx, history) {
+        if (idx === dates.length) return [history];
+        
+        const date = dates[idx];
+        const lShift = getShift(lStock, date);
+        if (lShift.includes('R') || lShift === 'AR') {
+            return backtrack(idx + 1, [...history, { date, desc: `無須調度`, workers: [], isFull: false }]);
+        }
+
+        let opts = [];
+        // 1. 全額
+        others.forEach(s => {
+            const sShift = getShift(s, date);
+            if (['NR1','NR2','MR1','MR2'].includes(sShift)) {
+                if (sShift === 'MR2' && lShift.startsWith('A')) return;
+                opts.push({ date, desc: `${s}股 全額代班 (${sShift})`, workers: [s], isFull: true });
+            }
+        });
+
+        // 2. 拆班
+        if (lShift.startsWith('A')) {
+            let p1 = others.find(s => getShift(s, date).startsWith('M'));
+            let p2 = others.find(s => getShift(s, getNextDay(date)).startsWith('N'));
+            if (p1 && p2) opts.push({ date, desc: `拆班 (前半:${p1}股 / 後半:${p2}股)`, workers: [p1, p2], isFull: false });
+        } else if (lShift.startsWith('M')) {
+            let p1 = others.find(s => getShift(s, date).startsWith('N'));
+            let p2 = others.find(s => getShift(s, date).startsWith('A'));
+            if (p1 && p2) opts.push({ date, desc: `拆班 (前半:${p1}股 / 後半:${p2}股)`, workers: [p1, p2], isFull: false });
+        }
+
+        let results = [];
+        for (let o of opts) {
+            if (isPerfectlySafe(history, o, dates)) {
+                results.push(...backtrack(idx + 1, [...history, o]));
+            }
+        }
+        return results;
+    }
+
+    function isPerfectlySafe(history, current, targetDates) {
+        const fullPlan = [...history, current];
+        const allStocks = ['A','B','C','D'];
+
+        for (let s of allStocks) {
+            const getWorkingStatus = (dStr) => {
+                const baseCode = getShift(s, dStr);
+                const isHoliday = baseCode.includes('R') || baseCode === 'AR';
+                
+                // 基礎事實 A: 原本上班
+                let isWorking = !isHoliday;
+                // 基礎事實 B: 強制支援 MR2+N1
+                if (baseCode === 'MR2' && getShift(s, getNextDay(dStr)) === 'N1') isWorking = true;
+                
+                // 方案事實: 如果在請假期間內有全額代班
+                const inPlan = fullPlan.find(p => p.date === dStr);
+                if (inPlan && inPlan.isFull && inPlan.workers.includes(s)) isWorking = true;
+
+                // 核心邏輯: 如果該日期不在請假區間(targetDates)內，且原班表是休息，則絕對視為休息事實
+                if (!targetDates.includes(dStr) && isHoliday) isWorking = false;
+
+                return isWorking;
+            };
+
+            // 掃描範圍：請假區間前後 8 天，確保 7 天窗口內必有休息
+            let scanDate = new Date(targetDates[0]);
+            scanDate.setDate(scanDate.getDate() - 8);
+            
+            let streak = 0;
+            for(let i=0; i<30; i++) {
+                let ds = scanDate.toISOString().split('T')[0];
+                if (getWorkingStatus(ds)) {
+                    streak++;
+                    if (streak >= 7) return false;
+                } else {
+                    streak = 0; // 只要有一個點是休息事實，計數器清零
+                }
+                scanDate.setDate(scanDate.getDate() + 1);
+            }
+        }
+        return true;
+    }
+
+    return backtrack(0, []);
+}
+
+function renderResults(sols) {
+    document.getElementById('resultHeader').classList.remove('hidden');
+    const out = document.getElementById('resultContent');
+    if (sols.length === 0) {
+        out.innerHTML = `<div class="error-msg">目前條件下無可行方案。請確認是否違反「連續上班不超過 6 天」之原則。</div>`;
+        return;
+    }
+
+    let html = '';
+    sols.forEach((sol, i) => {
+        html += `<div class="solution-card">
+                    <div class="solution-title">可行方案 ${i + 1}</div>
+                    <div class="solution-body">`;
+        sol.forEach(d => {
+            html += `<div class="day-line"><span class="date-tag">${d.date}</span> <span>${d.desc}</span></div>`;
+        });
+        html += `</div></div>`;
+    });
+    out.innerHTML = html;
+}
+</script>
+
+</body>
+</html>
