@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>智慧排班與代班分析系統</title>
+    <title>智慧排班與代班分析系統 - 嚮導模式</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+TC:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
         :root {
@@ -15,7 +15,9 @@
             --text-main: #0f172a;
             --border: #e2e8f0;
             --success: #10b981;
+            --success-hover: #059669;
             --danger: #ef4444;
+            --warning: #f59e0b;
             --radius-md: 12px;
             --radius-lg: 16px;
         }
@@ -27,10 +29,11 @@
             margin: 0;
             padding: 20px;
             line-height: 1.6;
+            transition: all 0.3s;
         }
 
         .layout {
-            max-width: 1200px;
+            max-width: 900px;
             margin: 0 auto;
             display: grid;
             grid-template-columns: 1fr;
@@ -167,50 +170,26 @@
             flex-wrap: wrap;
         }
 
-        /* Table */
-        .table-wrapper {
-            overflow-x: auto;
-            margin-bottom: 30px;
+        .alert {
+            padding: 16px 20px;
             border-radius: var(--radius-md);
-            border: 1px solid var(--border);
+            background: #fee2e2;
+            color: #991b1b;
+            border: 1px solid #fecaca;
+            font-weight: 500;
         }
-
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            font-size: 14px;
-            background: white;
-            min-width: 600px;
-        }
-
-        th, td {
-            border: 1px solid var(--border);
-            padding: 12px 16px;
-            text-align: center;
-            min-width: 80px;
-        }
-
-        th {
-            background: #f1f5f9;
-            font-weight: 600;
-            color: var(--secondary);
-            position: sticky;
-            top: 0;
-            z-index: 10;
-        }
-
-        .highlight-row { background: #fefce8; }
-        .rest-cell { color: #94a3b8; font-style: italic; }
-        .target-cell { font-weight: 700; color: var(--danger); text-decoration: underline; text-underline-offset: 4px;}
-
-        /* Solutions */
-        .solution-card {
-            background: white;
-            border: 2px solid var(--success);
+        
+        .alert-info {
+            background: #eff6ff;
+            color: #1e3a8a;
+            border: 1px solid #bfdbfe;
+            padding: 16px;
             border-radius: var(--radius-md);
             margin-bottom: 20px;
-            overflow: hidden;
-            box-shadow: 0 4px 15px rgba(16, 185, 129, 0.08);
+        }
+
+        /* Wizard UI Styles */
+        #wizardArea {
             animation: fadeIn 0.4s ease-out;
         }
         
@@ -219,25 +198,79 @@
             to { opacity: 1; transform: translateY(0); }
         }
 
-        .solution-header {
-            background: var(--success);
-            color: white;
-            padding: 14px 24px;
-            font-weight: 700;
-            font-size: 16px;
+        .wizard-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 2px solid var(--border);
+            padding-bottom: 16px;
+            margin-bottom: 24px;
         }
 
-        .solution-content { padding: 20px 24px; }
-        
-        .timeline-item {
+        .wizard-title {
+            font-size: 20px;
+            font-weight: 700;
+            color: var(--primary);
+            margin: 0;
+        }
+
+        .option-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 12px;
+        }
+
+        .option-btn {
+            background: white;
+            color: var(--text-main);
+            border: 2px solid var(--border);
+            padding: 20px;
+            text-align: left;
+            font-size: 16px;
+            font-weight: 600;
+            border-radius: var(--radius-lg);
+            cursor: pointer;
+            transition: all 0.2s;
             display: flex;
-            gap: 20px;
-            padding: 16px 0;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .option-btn:hover {
+            border-color: var(--primary);
+            background: #f0fdf4;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+        }
+        
+        .option-btn-green {
+            background: #ecfdf5;
+            border-color: var(--success);
+            color: var(--success-hover);
+        }
+        
+        .option-btn-green:hover {
+            background: #d1fae5;
+            border-color: var(--success-hover);
+        }
+
+        .history-timeline {
+            margin-top: 30px;
+            background: #f8fafc;
+            padding: 20px;
+            border-radius: var(--radius-md);
+            border: 1px solid var(--border);
+        }
+
+        .history-item {
+            display: flex;
+            gap: 12px;
+            padding: 10px 0;
             border-bottom: 1px dashed var(--border);
             align-items: center;
         }
         
-        .timeline-item:last-child {
+        .history-item:last-child {
             border-bottom: none;
             padding-bottom: 0;
         }
@@ -249,7 +282,7 @@
             border-radius: 6px;
             font-weight: 700;
             font-family: monospace;
-            font-size: 15px;
+            font-size: 14px;
             white-space: nowrap;
         }
 
@@ -259,20 +292,36 @@
             color: var(--text-main);
         }
         
-        .alert {
-            padding: 16px 20px;
-            border-radius: var(--radius-md);
-            background: #fee2e2;
-            color: #991b1b;
-            border: 1px solid #fecaca;
-            font-weight: 500;
+        .hero-btn {
+            width: 100%;
+            font-size: 18px;
+            padding: 18px;
+            border-radius: 100px;
+            box-shadow: 0 4px 15px rgba(37,99,235,0.2);
+            background: linear-gradient(135deg, var(--primary), #3b82f6);
+        }
+        
+        .hero-btn:hover {
+            box-shadow: 0 6px 20px rgba(37,99,235,0.3);
+            transform: translateY(-2px);
+        }
+        
+        .finish-card {
+            text-align: center;
+            padding: 40px 20px;
+        }
+        
+        .finish-icon {
+            font-size: 64px;
+            margin-bottom: 20px;
+            display: inline-block;
         }
     </style>
 </head>
 <body>
 
-<div class="layout">
-    <div class="card">
+<div class="layout" id="mainLayout">
+    <div class="card" id="settingsCard">
         <h1>專案設定與請假條件</h1>
         <div class="form-grid">
             <div class="input-group">
@@ -304,35 +353,46 @@
     </div>
 
     <!-- 擴充與手動區 -->
-    <div class="form-grid" style="gap: 24px;">
+    <div class="form-grid" style="gap: 24px;" id="advancedCard">
         <div class="card">
-            <h2>👥 擴充支援人力 (做供區分)</h2>
+            <h2>👥 擴充支援人力</h2>
             <p style="font-size: 13px; color: var(--secondary); margin-top:-8px;">為某股增加額外人員，各自獨立分擔做6休1限制。最多新增 3 筆。</p>
             <div id="extraManpowerList"></div>
             <button class="btn-outline mt-4" onclick="addManpower()" id="btnAddManpower">＋ 新增股別人數</button>
         </div>
 
         <div class="card">
-            <h2>🎯 手動強制指定 (限縮範圍)</h2>
-            <p style="font-size: 13px; color: var(--secondary); margin-top:-8px;">強制指定某日期的特定時段必須由誰承接。未指定者由系統推算。</p>
+            <h2>🎯 手動強制指定</h2>
+            <p style="font-size: 13px; color: var(--secondary); margin-top:-8px;">強制指定特定日期與時段的代班人選（可利用此限縮推演範圍）。</p>
             <div id="manualConstraintList"></div>
             <button class="btn-outline mt-4" onclick="addConstraint()">＋ 新增強制條件</button>
         </div>
     </div>
 
-    <div class="card" style="text-align: center; border:none; box-shadow:none; background:transparent; padding:0;">
-        <button onclick="runCalculation()" style="width: 100%; font-size: 18px; padding: 18px; border-radius:100px; box-shadow: 0 4px 15px rgba(37,99,235,0.2);">🚀 開始智慧排程演算</button>
+    <div class="card" id="launchCard" style="text-align: center; border:none; box-shadow:none; background:transparent; padding:0;">
+        <button onclick="startWizard()" class="hero-btn">🚀 進入智慧排班嚮導</button>
     </div>
+</div>
 
-    <div id="outputArea" class="hidden">
-        <div class="card mb-4" id="tableCard">
-            <h2>📅 基準班表 (前後五日追蹤)</h2>
-            <div id="tableContent"></div>
+<!-- Wizard 互動區 -->
+<div class="layout hidden" id="wizardArea">
+    <div class="card">
+        <div class="wizard-header">
+            <h2 class="wizard-title" id="wizardTitle">第 X 步：請選擇安排</h2>
+            <button class="btn-outline" onclick="goBack()" id="btnBack">🔙 上一日 (退回重選)</button>
         </div>
-
-        <div class="card" id="resultCard" style="background: transparent; box-shadow: none; border: none; padding: 0;">
-            <div id="resultContent"></div>
+        
+        <div id="wizardOptions" class="option-grid">
+            <!-- 動態生成選項 -->
         </div>
+        
+        <div id="wizardHistory" class="history-timeline hidden">
+            <h3>目前已決定之排程</h3>
+            <div id="historyItems"></div>
+        </div>
+    </div>
+    <div style="text-align: center;">
+        <button class="btn-outline" onclick="resetWizard()">🔄 重設條件 (返回首頁)</button>
     </div>
 </div>
 
@@ -351,6 +411,13 @@ const SYSTEM = {
 let extraManpowers = []; 
 let manualConstraints = []; 
 let idCounter = 0;
+
+// Wizard State
+let globalSolutions = [];
+let calculationDates = [];
+let currentStepIndex = 0; 
+let selectedPath = []; 
+let currentLeaveStock = '';
 
 window.onload = () => {
     const today = new Date().toISOString().split('T')[0];
@@ -396,7 +463,7 @@ function getWorkerBaseStock(workerId) {
     return workerId.split('-')[0];
 }
 
-// -- DOM 增減邏輯 --
+// -- DOM 增減邏輯 (與舊版相同) --
 function updateDynamicSelects() {
     renderManpower();
     renderConstraints();
@@ -434,10 +501,10 @@ function generateWorkers() {
 
     let workers = [];
     ['A','B','C','D'].forEach(s => {
-        if (s === leaveStock) return; // 請假股不支援
+        if (s === leaveStock) return;
         let num = counts[s];
         if (num === 1) {
-            workers.push(s + '-1'); // 固定以 -1 為基準比較清晰
+            workers.push(s + '-1'); 
         } else {
             for(let i=1; i<=num; i++) workers.push(`${s}-${i}`);
         }
@@ -515,7 +582,7 @@ function recordFailure(idx, reason) {
     }
 }
 
-function runCalculation() {
+function startWizard() {
     const isSingle = document.getElementById('leaveMode').value === 'single';
     const sStr = document.getElementById('startDate').value;
     const eStr = isSingle ? sStr : document.getElementById('endDate').value;
@@ -524,8 +591,6 @@ function runCalculation() {
     if (!lStock) return alert("請先選擇請假股別！");
     if (sStr > eStr) return alert("結束日期不可小於開始日期！");
 
-    document.getElementById('outputArea').classList.remove('hidden');
-
     const dates = [];
     let cur = new Date(sStr);
     let end = new Date(eStr);
@@ -533,49 +598,151 @@ function runCalculation() {
         dates.push(cur.toISOString().split('T')[0]);
         cur.setDate(cur.getDate() + 1);
     }
+    
+    calculationDates = dates;
+    currentLeaveStock = lStock;
 
-    renderTable(sStr, eStr, lStock);
+    // 隱藏設定頁面
+    document.getElementById('settingsCard').classList.add('hidden');
+    document.getElementById('advancedCard').classList.add('hidden');
+    document.getElementById('launchCard').classList.add('hidden');
     
     // 初始化錯誤追蹤
     deepestFailReason = null;
     maxDepthReached = -1;
     
+    // 背景執行演算
+    document.body.style.cursor = 'wait';
     setTimeout(() => {
-        const results = solve(dates, lStock);
-        renderResults(results);
-    }, 50); // 讓 UI 先行更新
+        globalSolutions = solve(dates, lStock);
+        document.body.style.cursor = 'default';
+        
+        if (globalSolutions.length === 0) {
+            let msg = deepestFailReason || "目前設定條件深度衝突，無法演算出合法路徑。";
+            alert("⚠️ 無法進入嚮導：\n" + msg + "\n\n(系統將為您返回設定頁面調整)");
+            resetWizard();
+            return;
+        }
+        
+        // 成功，啟動嚮導
+        document.getElementById('wizardArea').classList.remove('hidden');
+        currentStepIndex = 0;
+        selectedPath = [];
+        renderWizardStep();
+    }, 50);
 }
 
-function renderTable(s, e, lStock) {
-    let vs = new Date(s); vs.setDate(vs.getDate() - 5);
-    let ve = new Date(e); ve.setDate(ve.getDate() + 5);
+function resetWizard() {
+    document.getElementById('settingsCard').classList.remove('hidden');
+    document.getElementById('advancedCard').classList.remove('hidden');
+    document.getElementById('launchCard').classList.remove('hidden');
+    document.getElementById('wizardArea').classList.add('hidden');
+}
+
+function renderWizardStep() {
+    const optionsContainer = document.getElementById('wizardOptions');
+    const titleObj = document.getElementById('wizardTitle');
+    const btnBack = document.getElementById('btnBack');
     
-    // Header
-    let workers = generateWorkers();
-    let heads = ``;
-    workers.forEach(w => heads += `<th>人員 ${w}</th>`);
-
-    let html = `<div class="table-wrapper"><table id="refTable">
-        <tr><th>日期</th><th>${lStock}股 (待補)</th>${heads}</tr>`;
-        
-    for(let d = new Date(vs); d <= ve; d.setDate(d.getDate()+1)) {
-        const ds = d.toISOString().split('T')[0];
-        const isTarget = ds >= s && ds <= e;
-        html += `<tr class="${isTarget ? 'highlight-row' : ''}">
-            <td class="${isTarget ? 'target-cell' : ''}">${ds}</td>`;
-        
-        let lCode = getShift(lStock, ds);
-        html += `<td class="${lCode.includes('R')?'rest-cell':''} ${isTarget?'target-cell':''}">${lCode}</td>`;
-
-        workers.forEach(w => {
-            const baseG = getWorkerBaseStock(w);
-            const code = getShift(baseG, ds);
-            html += `<td class="${code.includes('R')?'rest-cell':''}">${code}</td>`;
-        });
-        html += `</tr>`;
+    // 渲染歷史紀錄
+    renderHistory();
+    
+    if (currentStepIndex >= calculationDates.length) {
+        // 完成
+        titleObj.innerText = "✨ 恭喜完成！排班已全數推演合法";
+        btnBack.style.display = 'block';
+        optionsContainer.innerHTML = `
+            <div class="finish-card">
+                <div class="finish-icon">🎉</div>
+                <h3 style="font-size:22px; margin-bottom:10px;">已導證出一條百分之百合法且無 6 休 1 衝突的路線！</h3>
+                <p style="color:var(--secondary); font-size:15px;">請參考下方的「已決定之排程」進行實際派班。</p>
+            </div>
+        `;
+        return;
     }
-    html += `</table></div>`;
-    document.getElementById('tableContent').innerHTML = html;
+
+    let targetDate = calculationDates[currentStepIndex];
+    let lShift = getShift(currentLeaveStock, targetDate);
+    
+    titleObj.innerText = `第 ${currentStepIndex + 1} 步：請選擇 ${targetDate.substring(5)} (${currentLeaveStock}股 ${lShift}) 的安排`;
+    btnBack.style.display = currentStepIndex > 0 ? 'block' : 'none';
+    
+    // 透過比對 globalSolutions 與 selectedPath，擷取本步驟可選的合法分枝
+    let validBranches = [];
+    let seenOptionIds = new Set();
+    
+    for (let sol of globalSolutions) {
+        let match = true;
+        for (let i = 0; i < currentStepIndex; i++) {
+            if (sol[i].desc !== selectedPath[i].desc) {
+                match = false; 
+                break;
+            }
+        }
+        if (match) {
+            let opt = sol[currentStepIndex];
+            if (!seenOptionIds.has(opt.desc)) {
+                seenOptionIds.add(opt.desc);
+                validBranches.push(opt);
+            }
+        }
+    }
+    
+    // 畫出選項按鈕
+    let html = '';
+    validBranches.forEach((opt, idx) => {
+        // 利用 JSON 暫存物件以避開字串溢出
+        const varName = `wizardTempData_${idx}`;
+        window[varName] = opt;
+        
+        if (opt.type === 'none') {
+            html += `<button class="option-btn option-btn-green" onclick="selectOption(${varName})">
+                        <span>✅ ${opt.desc}</span>
+                        <span>➡️ 進入下一日</span>
+                     </button>`;
+        } else {
+            html += `<button class="option-btn" onclick="selectOption(${varName})">
+                        <span>${opt.desc}</span>
+                        <span style="color:var(--primary);">🎯 選擇</span>
+                     </button>`;
+        }
+    });
+    
+    optionsContainer.innerHTML = html;
+}
+
+function selectOption(optObj) {
+    selectedPath.push(optObj);
+    currentStepIndex++;
+    renderWizardStep();
+}
+
+function goBack() {
+    if (currentStepIndex > 0) {
+        selectedPath.pop();
+        currentStepIndex--;
+        renderWizardStep();
+    }
+}
+
+function renderHistory() {
+    const historyContainer = document.getElementById('wizardHistory');
+    const itemsContainer = document.getElementById('historyItems');
+    if (selectedPath.length === 0) {
+        historyContainer.classList.add('hidden');
+        return;
+    }
+    
+    historyContainer.classList.remove('hidden');
+    let html = '';
+    selectedPath.forEach(step => {
+        let textStyle = step.type === 'none' ? 'color: var(--success); font-weight: 700;' : '';
+        html += `<div class="history-item">
+                    <span class="date-badge">✔️ ${step.date.substring(5)}</span> 
+                    <span class="desc-text" style="${textStyle}">${step.desc}</span>
+                 </div>`;
+    });
+    itemsContainer.innerHTML = html;
 }
 
 function solve(dates, lStock) {
@@ -599,8 +766,8 @@ function solve(dates, lStock) {
             const base = getWorkerBaseStock(w);
             const sShift = getShift(base, date);
             if (['NR1', 'NR2', 'MR1', 'MR2'].includes(sShift)) {
-                if (sShift === 'MR2' && lShift.match(/^A[1-5]$/)) continue;
-                opts.push({ date, type: 'full', desc: `全額代班：${w} (${sShift})`, workers: [w], assignments: { first: w, second: "" } });
+                if (sShift === 'MR2' && lShift.match(/^A[1-5]$/)) continue; // MR2 剛休完上中班很怪
+                opts.push({ date, type: 'full', desc: `全額由 ${w} (${sShift}) 代班`, workers: [w], assignments: { first: w, second: "" } });
             }
         }
 
@@ -624,13 +791,11 @@ function solve(dates, lStock) {
             }
         }
         else if (lShift.match(/^N[1-5]$/)) {
-            // 夜班：早班當日調夜班+4H (早班負責)，中班往前+4H (中班負責)
-            // 第一指定位(first)為早班調夜班的M員，第二指定位(second)為中班往前的A員
             let wMs = availableWorkers.filter(w => getShift(getWorkerBaseStock(w), date).match(/^M[1-5]$/));
             let wAs = availableWorkers.filter(w => getShift(getWorkerBaseStock(w), date).match(/^A[1-5]$/));
             for(let wM of wMs) {
                 for(let wA of wAs) {
-                    opts.push({ date, type: 'split', desc: `調班調度：(早班調夜班+4H:${wM} / 中班提前上班+4H:${wA})`, workers: [wM, wA], assignments: { first: wM, second: wA } });
+                    opts.push({ date, type: 'split', desc: `調班支援：(早班調夜班+4H:${wM} / 中班提前上班+4H:${wA})`, workers: [wM, wA], assignments: { first: wM, second: wA } });
                 }
             }
         }
@@ -655,7 +820,7 @@ function solve(dates, lStock) {
         });
 
         if (opts.length === 0) {
-            recordFailure(idx, `在日期 [${date}] 缺乏符合條件的代班選項，可能已被「手動指定規則」過濾排除。`);
+            recordFailure(idx, `在日期 [${date}] 缺乏符合條件的選擇，可能已被「手動指定規則」過濾排除。`);
             return [];
         }
 
@@ -672,18 +837,19 @@ function solve(dates, lStock) {
         }
         
         if (allUnsafe && deepestFailReason === null) {
-            recordFailure(idx, `在日期 [${date}] 所有候選方案均會導致某員工違反連上7天規則。`);
+            recordFailure(idx, `在日期 [${date}] 所有選項均會導致員工違反「做6休1」規則。`);
         }
         
         return results;
     }
 
     // -- 做 6 休 1 約束檢查 --
+    const safeDatesObj = new Set(dates);
+    
     function isPerfectlySafe(fullPlan, targetDates) {
         let currentStep = fullPlan[fullPlan.length - 1];
         if (!currentStep.workers || currentStep.workers.length === 0) return { safe: true };
 
-        // 僅針對目前指派遭受異動的員工進行檢核 
         for (let worker of currentStep.workers) {
             const baseG = getWorkerBaseStock(worker);
             
@@ -696,7 +862,7 @@ function solve(dates, lStock) {
                     isWorking = true;
                 }
                 
-                if (!targetDates.includes(dStr) && (bCode.includes('R') || bCode === 'AR')) {
+                if (!safeDatesObj.has(dStr) && (bCode.includes('R') || bCode === 'AR')) {
                     isWorking = false;
                 }
                 return isWorking;
@@ -713,7 +879,7 @@ function solve(dates, lStock) {
                     if (streak === 0) startStreakDate = ds;
                     streak++;
                     if (streak >= 7) {
-                        return { safe: false, reason: `若指派強制代班，將導致人員 [${worker}] 從 ${startStreakDate} 起連續上班 7 天。` };
+                        return { safe: false, reason: `若選擇此項，將導致 [${worker}] 從 ${startStreakDate} 起連上 7 天。` };
                     }
                 } else {
                     streak = 0;
@@ -725,44 +891,6 @@ function solve(dates, lStock) {
     }
 
     return backtrack(0, []);
-}
-
-function renderResults(sols) {
-    const out = document.getElementById('resultContent');
-    if (sols.length === 0) {
-        let msg = deepestFailReason || "目前設定條件深度衝突，無法演算出合法路徑。";
-        out.innerHTML = `<div class="alert">
-            <h4 style="margin:0 0 10px 0; display:flex; align-items:center; gap:8px;">⚠️ 無法生成排班方案</h4>
-            <p style="margin:0; font-size:15px; line-height:1.6;"><strong>阻擋原因分析：</strong><br>${msg}</p>
-        </div>`;
-        return;
-    }
-
-    let html = `<h2 style="padding:0 24px; margin-top:10px;">✅ 共分析出 ${sols.length} 組可行排程</h2><div style="padding: 0 24px;">`;
-    
-    // 最多只渲染前 100 筆，避免 DOM 過於肥大而凍結
-    let renderCount = Math.min(sols.length, 100);
-    
-    for(let i = 0; i < renderCount; i++) {
-        let sol = sols[i];
-        html += `<div class="solution-card">
-                    <div class="solution-header">可行方案 ${i + 1}</div>
-                    <div class="solution-content">`;
-        sol.forEach(d => {
-            html += `<div class="timeline-item">
-                        <span class="date-badge">${d.date.substring(5)}</span> 
-                        <span class="desc-text">${d.desc}</span>
-                     </div>`;
-        });
-        html += `</div></div>`;
-    }
-
-    if (sols.length > 100) {
-        html += `<div style="text-align:center; padding: 20px; color: var(--secondary);">總計 ${sols.length} 組方案，因效能考量僅顯示前 100 組。您可以透過增加「強制手動指定」條件來限縮範圍。</div>`;
-    }
-
-    html += `</div>`;
-    out.innerHTML = html;
 }
 </script>
 
