@@ -1,80 +1,338 @@
 <!DOCTYPE html>
 <html lang="zh-TW">
 <head>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black">
     <meta charset="UTF-8">
-    <title>班表支援試算系統 - 終極穩定版</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>智慧排班與代班分析系統</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+TC:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        body { font-family: "Segoe UI", "Microsoft JhengHei", sans-serif; background: #f8fafc; padding: 20px; color: #334155; }
-        .container { max-width: 1100px; margin: 0 auto; background: white; padding: 35px; border-radius: 16px; box-shadow: 0 10px 25px rgba(0,0,0,0.05); }
-        h2 { border-left: 8px solid #3b82f6; padding-left: 15px; margin-bottom: 30px; color: #1e293b; letter-spacing: 1px; }
-        .control-panel { background: #f1f5f9; padding: 25px; border-radius: 12px; margin-bottom: 30px; display: flex; flex-wrap: wrap; gap: 20px; align-items: flex-end; }
-        .input-group { display: flex; flex-direction: column; gap: 6px; }
-        label { font-weight: 700; font-size: 14px; color: #475569; }
-        input, select { padding: 10px 14px; border: 1.5px solid #cbd5e1; border-radius: 8px; outline: none; background: white; }
-        input:focus, select:focus { border-color: #3b82f6; ring: 2px rgba(59, 130, 246, 0.2); }
-        button { padding: 12px 30px; background: #3b82f6; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 700; font-size: 16px; transition: 0.2s; }
-        button:hover { background: #2563eb; transform: translateY(-1px); }
-        .base-table { width: 100%; border-collapse: collapse; font-size: 14px; margin-bottom: 35px; border-radius: 8px; overflow: hidden; }
-        .base-table th, .base-table td { border: 1px solid #e2e8f0; padding: 12px; text-align: center; }
-        .base-table th { background: #1e293b; color: white; font-weight: 600; }
+        :root {
+            --primary: #2563eb;
+            --primary-hover: #1d4ed8;
+            --secondary: #64748b;
+            --bg-color: #f8fafc;
+            --surface: #ffffff;
+            --text-main: #0f172a;
+            --border: #e2e8f0;
+            --success: #10b981;
+            --danger: #ef4444;
+            --radius-md: 12px;
+            --radius-lg: 16px;
+        }
+
+        body {
+            font-family: 'Inter', 'Noto Sans TC', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            margin: 0;
+            padding: 20px;
+            line-height: 1.6;
+        }
+
+        .layout {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 24px;
+        }
+
+        .card {
+            background: var(--surface);
+            border-radius: var(--radius-lg);
+            padding: 30px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -2px rgba(0, 0, 0, 0.05);
+            border: 1px solid var(--border);
+        }
+
+        h1 {
+            font-size: 24px;
+            font-weight: 700;
+            margin-top: 0;
+            margin-bottom: 24px;
+            color: var(--text-main);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        
+        h1::before {
+            content: '';
+            display: block;
+            width: 6px;
+            height: 24px;
+            background: var(--primary);
+            border-radius: 4px;
+        }
+
+        h2 {
+            font-size: 18px;
+            margin: 0 0 16px 0;
+            color: var(--text-main);
+            border-bottom: 2px solid var(--border);
+            padding-bottom: 10px;
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+        }
+
+        .input-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        label {
+            font-weight: 600;
+            font-size: 14px;
+            color: var(--secondary);
+        }
+
+        input, select {
+            padding: 12px 16px;
+            border: 1.5px solid var(--border);
+            border-radius: var(--radius-md);
+            font-size: 15px;
+            outline: none;
+            transition: all 0.2s;
+            background: #f8fafc;
+        }
+
+        input:focus, select:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+            background: white;
+        }
+
+        button {
+            padding: 12px 24px;
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: var(--radius-md);
+            font-weight: 600;
+            font-size: 15px;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        button:hover {
+            background: var(--primary-hover);
+            transform: translateY(-1px);
+        }
+
+        button.btn-outline {
+            background: transparent;
+            color: var(--primary);
+            border: 1.5px solid var(--primary);
+        }
+
+        button.btn-outline:hover {
+            background: rgba(37, 99, 235, 0.05);
+        }
+        
+        button.btn-danger {
+            background: transparent;
+            color: var(--danger);
+            border: 1.5px solid var(--danger);
+            padding: 8px 16px;
+            font-size: 13px;
+        }
+
+        button.btn-danger:hover {
+            background: rgba(239, 68, 68, 0.05);
+        }
+
+        .mt-4 { margin-top: 16px; }
+        .mb-4 { margin-bottom: 16px; }
+        .hidden { display: none !important; }
+
+        .list-item {
+            background: #f8fafc;
+            border: 1px solid var(--border);
+            padding: 16px;
+            border-radius: var(--radius-md);
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+            flex-wrap: wrap;
+        }
+
+        /* Table */
+        .table-wrapper {
+            overflow-x: auto;
+            margin-bottom: 30px;
+            border-radius: var(--radius-md);
+            border: 1px solid var(--border);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 14px;
+            background: white;
+            min-width: 600px;
+        }
+
+        th, td {
+            border: 1px solid var(--border);
+            padding: 12px 16px;
+            text-align: center;
+            min-width: 80px;
+        }
+
+        th {
+            background: #f1f5f9;
+            font-weight: 600;
+            color: var(--secondary);
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
         .highlight-row { background: #fefce8; }
         .rest-cell { color: #94a3b8; font-style: italic; }
-        .solution-card { border: 2px solid #10b981; border-radius: 10px; margin-bottom: 25px; background: white; box-shadow: 0 4px 12px rgba(16, 185, 129, 0.1); }
-        .solution-title { background: #10b981; color: white; padding: 12px 20px; font-weight: 700; font-size: 18px; }
-        .solution-body { padding: 20px; }
-        .day-line { padding: 12px 0; border-bottom: 1px dashed #e2e8f0; font-size: 16px; display: flex; gap: 15px; }
-        .day-line:last-child { border-bottom: none; }
-        .date-tag { font-weight: 800; color: #3b82f6; min-width: 100px; }
-        .error-msg { background: #fee2e2; color: #b91c1c; padding: 20px; border-radius: 8px; font-weight: 700; text-align: center; border: 1px solid #fecaca; }
-        .hidden { display: none; }
+        .target-cell { font-weight: 700; color: var(--danger); text-decoration: underline; text-underline-offset: 4px;}
+
+        /* Solutions */
+        .solution-card {
+            background: white;
+            border: 2px solid var(--success);
+            border-radius: var(--radius-md);
+            margin-bottom: 20px;
+            overflow: hidden;
+            box-shadow: 0 4px 15px rgba(16, 185, 129, 0.08);
+            animation: fadeIn 0.4s ease-out;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .solution-header {
+            background: var(--success);
+            color: white;
+            padding: 14px 24px;
+            font-weight: 700;
+            font-size: 16px;
+        }
+
+        .solution-content { padding: 20px 24px; }
+        
+        .timeline-item {
+            display: flex;
+            gap: 20px;
+            padding: 16px 0;
+            border-bottom: 1px dashed var(--border);
+            align-items: center;
+        }
+        
+        .timeline-item:last-child {
+            border-bottom: none;
+            padding-bottom: 0;
+        }
+
+        .date-badge {
+            background: #eff6ff;
+            color: var(--primary);
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-weight: 700;
+            font-family: monospace;
+            font-size: 15px;
+            white-space: nowrap;
+        }
+
+        .desc-text {
+            font-size: 15px;
+            font-weight: 500;
+            color: var(--text-main);
+        }
+        
+        .alert {
+            padding: 16px 20px;
+            border-radius: var(--radius-md);
+            background: #fee2e2;
+            color: #991b1b;
+            border: 1px solid #fecaca;
+            font-weight: 500;
+        }
     </style>
 </head>
 <body>
 
-<div class="container">
-    <h2>班表支援試算系統 <small style="font-size: 12px; color: #64748b; font-weight: 400;">(初試正常)</small></h2>
-    
-    <div class="control-panel">
-        <div class="input-group">
-            <label>請假模式</label>
-            <select id="leaveMode" onchange="toggleMode()">
-                <option value="single">請假一日</option>
-                <option value="multi" selected>請假多日</option>
-            </select>
+<div class="layout">
+    <div class="card">
+        <h1>專案設定與請假條件</h1>
+        <div class="form-grid">
+            <div class="input-group">
+                <label>請假模式</label>
+                <select id="leaveMode" onchange="toggleMode()">
+                    <option value="single">請假一日</option>
+                    <option value="multi" selected>多日連續請假</option>
+                </select>
+            </div>
+            <div class="input-group">
+                <label id="dateLabel">開始日期</label>
+                <input type="date" id="startDate" onchange="handleDateChange()">
+            </div>
+            <div id="endDateGroup" class="input-group">
+                <label>結束日期</label>
+                <input type="date" id="endDate">
+            </div>
+            <div class="input-group">
+                <label>請假股別</label>
+                <select id="leaveStock" onchange="updateDynamicSelects()">
+                    <option value="" disabled selected>請選擇股別</option>
+                    <option value="A">A 股</option>
+                    <option value="B">B 股</option>
+                    <option value="C">C 股</option>
+                    <option value="D">D 股</option>
+                </select>
+            </div>
         </div>
-        <div class="input-group">
-            <label id="dateLabel">開始日期</label>
-            <input type="date" id="startDate" onchange="handleDateChange()">
-        </div>
-        <div id="endDateGroup" class="input-group">
-            <label>結束日期</label>
-            <input type="date" id="endDate">
-        </div>
-        <div class="input-group">
-            <label>請假股別</label>
-            <select id="leaveStock">
-                <option value="" disabled selected>請選擇股別</option>
-                <option value="A">A 股</option>
-                <option value="B">B 股</option>
-                <option value="C">C 股</option>
-                <option value="D">D 股</option>
-            </select>
-        </div>
-        <button onclick="runCalculation()">開始生成方案</button>
     </div>
 
-    <div id="baseOutputArea">
-        <div id="tableHeader" class="hidden" style="margin-bottom:10px; font-weight:bold; color:#1e293b;">基準班表 (前後五日參考)</div>
-        <div id="tableContent"></div>
+    <!-- 擴充與手動區 -->
+    <div class="form-grid" style="gap: 24px;">
+        <div class="card">
+            <h2>👥 擴充支援人力 (做供區分)</h2>
+            <p style="font-size: 13px; color: var(--secondary); margin-top:-8px;">為某股增加額外人員，各自獨立分擔做6休1限制。最多新增 3 筆。</p>
+            <div id="extraManpowerList"></div>
+            <button class="btn-outline mt-4" onclick="addManpower()" id="btnAddManpower">＋ 新增股別人數</button>
+        </div>
+
+        <div class="card">
+            <h2>🎯 手動強制指定 (限縮範圍)</h2>
+            <p style="font-size: 13px; color: var(--secondary); margin-top:-8px;">強制指定某日期的特定時段必須由誰承接。未指定者由系統推算。</p>
+            <div id="manualConstraintList"></div>
+            <button class="btn-outline mt-4" onclick="addConstraint()">＋ 新增強制條件</button>
+        </div>
     </div>
 
-    <div id="resultOutputArea">
-        <div id="resultHeader" class="hidden" style="margin-bottom:10px; font-weight:bold; color:#1e293b;">可行方案列表</div>
-        <div id="resultContent"></div>
+    <div class="card" style="text-align: center; border:none; box-shadow:none; background:transparent; padding:0;">
+        <button onclick="runCalculation()" style="width: 100%; font-size: 18px; padding: 18px; border-radius:100px; box-shadow: 0 4px 15px rgba(37,99,235,0.2);">🚀 開始智慧排程演算</button>
+    </div>
+
+    <div id="outputArea" class="hidden">
+        <div class="card mb-4" id="tableCard">
+            <h2>📅 基準班表 (前後五日追蹤)</h2>
+            <div id="tableContent"></div>
+        </div>
+
+        <div class="card" id="resultCard" style="background: transparent; box-shadow: none; border: none; padding: 0;">
+            <div id="resultContent"></div>
+        </div>
     </div>
 </div>
 
@@ -89,6 +347,10 @@ const SYSTEM = {
         14:'M1', 15:'M2', 16:'M3', 17:'M4', 18:'M5', 19:'MR1', 20:'MR2'
     }
 };
+
+let extraManpowers = []; 
+let manualConstraints = []; 
+let idCounter = 0;
 
 window.onload = () => {
     const today = new Date().toISOString().split('T')[0];
@@ -105,19 +367,21 @@ function toggleMode() {
 
 function handleDateChange() {
     if (document.getElementById('leaveMode').value === 'multi') {
-        const start = new Date(document.getElementById('startDate').value);
-        if(!isNaN(start)){
-            start.setDate(start.getDate() + 1);
-            document.getElementById('endDate').value = start.toISOString().split('T')[0];
+        const start = document.getElementById('startDate').value;
+        if(start){
+            let d = new Date(start);
+            d.setDate(d.getDate() + 1);
+            document.getElementById('endDate').value = d.toISOString().split('T')[0];
         }
     }
 }
 
-function getShift(stock, dateStr) {
+// -- Helpers --
+function getShift(baseStock, dateStr) {
     const target = new Date(dateStr);
     target.setHours(0,0,0,0);
     const diff = Math.round((target - SYSTEM.anchor) / (1000 * 60 * 60 * 24));
-    let pos = (SYSTEM.initPos[stock] + diff - 1) % SYSTEM.cycle + 1;
+    let pos = (SYSTEM.initPos[baseStock] + diff - 1) % SYSTEM.cycle + 1;
     if (pos <= 0) pos += SYSTEM.cycle;
     return SYSTEM.codes[pos];
 }
@@ -128,12 +392,139 @@ function getNextDay(dateStr) {
     return d.toISOString().split('T')[0];
 }
 
+function getWorkerBaseStock(workerId) {
+    return workerId.split('-')[0];
+}
+
+// -- DOM 增減邏輯 --
+function updateDynamicSelects() {
+    renderManpower();
+    renderConstraints();
+}
+
+function addManpower() {
+    if (extraManpowers.length >= 3) return alert("最多只能新增 3 筆額外人力設定。");
+    extraManpowers.push({ id: ++idCounter, stock: '', count: 1 });
+    renderManpower();
+}
+
+function removeManpower(id) {
+    extraManpowers = extraManpowers.filter(m => m.id !== id);
+    renderManpower();
+    renderConstraints();
+}
+
+function addConstraint() {
+    const sDate = document.getElementById('startDate').value;
+    manualConstraints.push({ id: ++idCounter, date: sDate, part: '全額', worker: '' });
+    renderConstraints();
+}
+
+function removeConstraint(id) {
+    manualConstraints = manualConstraints.filter(m => m.id !== id);
+    renderConstraints();
+}
+
+function generateWorkers() {
+    let leaveStock = document.getElementById('leaveStock').value;
+    let counts = { A: 1, B: 1, C: 1, D: 1 };
+    extraManpowers.forEach(m => {
+        if (m.stock) counts[m.stock] += parseInt(m.count) || 0;
+    });
+
+    let workers = [];
+    ['A','B','C','D'].forEach(s => {
+        if (s === leaveStock) return; // 請假股不支援
+        let num = counts[s];
+        if (num === 1) {
+            workers.push(s + '-1'); // 固定以 -1 為基準比較清晰
+        } else {
+            for(let i=1; i<=num; i++) workers.push(`${s}-${i}`);
+        }
+    });
+    return workers;
+}
+
+function renderManpower() {
+    let leave = document.getElementById('leaveStock').value;
+    let html = '';
+    extraManpowers.forEach(m => {
+        let opts = `<option value="" disabled ${!m.stock ? 'selected' : ''}>請選擇股別</option>`;
+        ['A','B','C','D'].forEach(s => {
+            if (s !== leave) opts += `<option value="${s}" ${m.stock === s ? 'selected' : ''}>${s} 股</option>`;
+        });
+        html += `
+        <div class="list-item">
+            <div style="display:flex; gap:10px; align-items:center;">
+                <select onchange="updateManpower(${m.id}, 'stock', this.value); updateDynamicSelects()">${opts}</select>
+                <span style="color:var(--secondary); font-size:14px;">增加:</span>
+                <select onchange="updateManpower(${m.id}, 'count', this.value); updateDynamicSelects()">
+                    <option value="1" ${m.count==1?'selected':''}>1 人</option>
+                    <option value="2" ${m.count==2?'selected':''}>2 人</option>
+                    <option value="3" ${m.count==3?'selected':''}>3 人</option>
+                </select>
+            </div>
+            <button class="btn-danger" onclick="removeManpower(${m.id})">移除</button>
+        </div>`;
+    });
+    document.getElementById('extraManpowerList').innerHTML = html;
+}
+
+function updateManpower(id, key, val) {
+    let item = extraManpowers.find(m => m.id === id);
+    if (item) item[key] = val;
+}
+
+function renderConstraints() {
+    let workers = generateWorkers();
+    let modes = ['全額', '指定代班一', '指定代班二'];
+    let html = '';
+    manualConstraints.forEach(m => {
+        let wOpts = `<option value="" disabled ${!m.worker ? 'selected' : ''}>請選擇代班者</option>`;
+        workers.forEach(w => wOpts += `<option value="${w}" ${m.worker === w ? 'selected' : ''}>人員 ${w}</option>`);
+        
+        let pOpts = '';
+        modes.forEach(p => pOpts += `<option value="${p}" ${m.part === p ? 'selected' : ''}>${p}</option>`);
+
+        html += `
+        <div class="list-item">
+            <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+                <input type="date" value="${m.date}" onchange="updateConstraint(${m.id}, 'date', this.value)" style="width:130px;">
+                <select onchange="updateConstraint(${m.id}, 'part', this.value)">${pOpts}</select>
+                <select onchange="updateConstraint(${m.id}, 'worker', this.value)">${wOpts}</select>
+            </div>
+            <button class="btn-danger" onclick="removeConstraint(${m.id})">移除</button>
+        </div>`;
+    });
+    document.getElementById('manualConstraintList').innerHTML = html;
+}
+
+function updateConstraint(id, key, val) {
+    let item = manualConstraints.find(m => m.id === id);
+    if (item) item[key] = val;
+}
+
+// -- 核心運算 --
+let deepestFailReason = null;
+let maxDepthReached = -1;
+
+function recordFailure(idx, reason) {
+    if (idx >= maxDepthReached) {
+        maxDepthReached = idx;
+        deepestFailReason = reason;
+    }
+}
+
 function runCalculation() {
-    const mode = document.getElementById('leaveMode').value;
+    const isSingle = document.getElementById('leaveMode').value === 'single';
     const sStr = document.getElementById('startDate').value;
-    const eStr = mode === 'single' ? sStr : document.getElementById('endDate').value;
+    const eStr = isSingle ? sStr : document.getElementById('endDate').value;
     const lStock = document.getElementById('leaveStock').value;
-    if (!lStock) return alert("請選擇股別");
+
+    if (!lStock) return alert("請先選擇請假股別！");
+    if (sStr > eStr) return alert("結束日期不可小於開始日期！");
+
+    document.getElementById('outputArea').classList.remove('hidden');
 
     const dates = [];
     let cur = new Date(sStr);
@@ -144,136 +535,233 @@ function runCalculation() {
     }
 
     renderTable(sStr, eStr, lStock);
-    const results = solve(dates, lStock);
-    renderResults(results);
+    
+    // 初始化錯誤追蹤
+    deepestFailReason = null;
+    maxDepthReached = -1;
+    
+    setTimeout(() => {
+        const results = solve(dates, lStock);
+        renderResults(results);
+    }, 50); // 讓 UI 先行更新
 }
 
 function renderTable(s, e, lStock) {
-    document.getElementById('tableHeader').classList.remove('hidden');
     let vs = new Date(s); vs.setDate(vs.getDate() - 5);
     let ve = new Date(e); ve.setDate(ve.getDate() + 5);
-    let html = `<table class="base-table"><tr><th>日期</th><th>A股</th><th>B股</th><th>C股</th><th>D股</th></tr>`;
+    
+    // Header
+    let workers = generateWorkers();
+    let heads = ``;
+    workers.forEach(w => heads += `<th>人員 ${w}</th>`);
+
+    let html = `<div class="table-wrapper"><table id="refTable">
+        <tr><th>日期</th><th>${lStock}股 (待補)</th>${heads}</tr>`;
+        
     for(let d = new Date(vs); d <= ve; d.setDate(d.getDate()+1)) {
         const ds = d.toISOString().split('T')[0];
         const isTarget = ds >= s && ds <= e;
-        html += `<tr class="${isTarget ? 'highlight-row' : ''}"><td>${ds}</td>`;
-        ['A','B','C','D'].forEach(stk => {
-            const code = getShift(stk, ds);
-            const isR = code.includes('R') || code === 'AR';
-            html += `<td class="${isR ? 'rest-cell' : ''}">${(stk === lStock && isTarget) ? '<u>'+code+'</u>' : code}</td>`;
+        html += `<tr class="${isTarget ? 'highlight-row' : ''}">
+            <td class="${isTarget ? 'target-cell' : ''}">${ds}</td>`;
+        
+        let lCode = getShift(lStock, ds);
+        html += `<td class="${lCode.includes('R')?'rest-cell':''} ${isTarget?'target-cell':''}">${lCode}</td>`;
+
+        workers.forEach(w => {
+            const baseG = getWorkerBaseStock(w);
+            const code = getShift(baseG, ds);
+            html += `<td class="${code.includes('R')?'rest-cell':''}">${code}</td>`;
         });
         html += `</tr>`;
     }
-    html += `</table>`;
+    html += `</table></div>`;
     document.getElementById('tableContent').innerHTML = html;
 }
 
 function solve(dates, lStock) {
-    const others = ['A','B','C','D'].filter(s => s !== lStock);
+    const availableWorkers = generateWorkers();
 
     function backtrack(idx, history) {
         if (idx === dates.length) return [history];
         
         const date = dates[idx];
         const lShift = getShift(lStock, date);
+        
+        // 若休假日，無須代班
         if (lShift.includes('R') || lShift === 'AR') {
-            return backtrack(idx + 1, [...history, { date, desc: `無須調度`, workers: [], isFull: false }]);
+            return backtrack(idx + 1, [...history, { date, type: 'none', desc: `原排休 (${lShift})，無須調度`, workers: [] }]);
         }
 
         let opts = [];
-        // 1. 全額
-        others.forEach(s => {
-            const sShift = getShift(s, date);
-            if (['NR1','NR2','MR1','MR2'].includes(sShift)) {
-                if (sShift === 'MR2' && lShift.startsWith('A')) return;
-                opts.push({ date, desc: `${s}股 全額代班 (${sShift})`, workers: [s], isFull: true });
+
+        // 全額代班
+        for (let w of availableWorkers) {
+            const base = getWorkerBaseStock(w);
+            const sShift = getShift(base, date);
+            if (['NR1', 'NR2', 'MR1', 'MR2'].includes(sShift)) {
+                if (sShift === 'MR2' && lShift.match(/^A[1-5]$/)) continue;
+                opts.push({ date, type: 'full', desc: `全額代班：${w} (${sShift})`, workers: [w], assignments: { first: w, second: "" } });
             }
+        }
+
+        // 拆班邏輯
+        if (lShift.match(/^A[1-5]$/)) {
+            let p1s = availableWorkers.filter(w => getShift(getWorkerBaseStock(w), date).match(/^M[1-5]$/));
+            let p2s = availableWorkers.filter(w => getShift(getWorkerBaseStock(w), getNextDay(date)).match(/^N[1-5]$/));
+            for(let w1 of p1s) {
+                for(let w2 of p2s) {
+                    opts.push({ date, type: 'split', desc: `拆班支援：(前半段:${w1} / 後半段:${w2})`, workers: [w1, w2], assignments: { first: w1, second: w2 } });
+                }
+            }
+        } 
+        else if (lShift.match(/^M[1-5]$/)) {
+            let p1s = availableWorkers.filter(w => getShift(getWorkerBaseStock(w), date).match(/^N[1-5]$/));
+            let p2s = availableWorkers.filter(w => getShift(getWorkerBaseStock(w), date).match(/^A[1-5]$/));
+            for(let w1 of p1s) {
+                for(let w2 of p2s) {
+                    opts.push({ date, type: 'split', desc: `拆班支援：(前半段:${w1} / 後半段:${w2})`, workers: [w1, w2], assignments: { first: w1, second: w2 } });
+                }
+            }
+        }
+        else if (lShift.match(/^N[1-5]$/)) {
+            // 夜班：早班當日調夜班+4H (早班負責)，中班往前+4H (中班負責)
+            // 第一指定位(first)為早班調夜班的M員，第二指定位(second)為中班往前的A員
+            let wMs = availableWorkers.filter(w => getShift(getWorkerBaseStock(w), date).match(/^M[1-5]$/));
+            let wAs = availableWorkers.filter(w => getShift(getWorkerBaseStock(w), date).match(/^A[1-5]$/));
+            for(let wM of wMs) {
+                for(let wA of wAs) {
+                    opts.push({ date, type: 'split', desc: `調班調度：(早班調夜班+4H:${wM} / 中班提前上班+4H:${wA})`, workers: [wM, wA], assignments: { first: wM, second: wA } });
+                }
+            }
+        }
+
+        // ====== 過濾手動限制 ======
+        let dayConstraints = manualConstraints.filter(m => m.date === date);
+        opts = opts.filter(opt => {
+            for (let c of dayConstraints) {
+                if (!c.worker) continue;
+                if (c.part === '全額') {
+                    if (opt.type !== 'full') return false;
+                    if (opt.assignments.first !== c.worker) return false;
+                } else if (c.part === '指定代班一') {
+                    if (opt.type !== 'split') return false;
+                    if (opt.assignments.first !== c.worker) return false;
+                } else if (c.part === '指定代班二') {
+                    if (opt.type !== 'split') return false;
+                    if (opt.assignments.second !== c.worker) return false;
+                }
+            }
+            return true;
         });
 
-        // 2. 拆班
-        if (lShift.startsWith('A')) {
-            let p1 = others.find(s => getShift(s, date).startsWith('M'));
-            let p2 = others.find(s => getShift(s, getNextDay(date)).startsWith('N'));
-            if (p1 && p2) opts.push({ date, desc: `拆班 (前半:${p1}股 / 後半:${p2}股)`, workers: [p1, p2], isFull: false });
-        } else if (lShift.startsWith('M')) {
-            let p1 = others.find(s => getShift(s, date).startsWith('N'));
-            let p2 = others.find(s => getShift(s, date).startsWith('A'));
-            if (p1 && p2) opts.push({ date, desc: `拆班 (前半:${p1}股 / 後半:${p2}股)`, workers: [p1, p2], isFull: false });
+        if (opts.length === 0) {
+            recordFailure(idx, `在日期 [${date}] 缺乏符合條件的代班選項，可能已被「手動指定規則」過濾排除。`);
+            return [];
         }
 
         let results = [];
+        let allUnsafe = true;
         for (let o of opts) {
-            if (isPerfectlySafe(history, o, dates)) {
+            const check = isPerfectlySafe([...history, o], dates);
+            if (check.safe) {
+                allUnsafe = false;
                 results.push(...backtrack(idx + 1, [...history, o]));
+            } else {
+                recordFailure(idx, check.reason);
             }
         }
+        
+        if (allUnsafe && deepestFailReason === null) {
+            recordFailure(idx, `在日期 [${date}] 所有候選方案均會導致某員工違反連上7天規則。`);
+        }
+        
         return results;
     }
 
-    function isPerfectlySafe(history, current, targetDates) {
-        const fullPlan = [...history, current];
-        const allStocks = ['A','B','C','D'];
+    // -- 做 6 休 1 約束檢查 --
+    function isPerfectlySafe(fullPlan, targetDates) {
+        let currentStep = fullPlan[fullPlan.length - 1];
+        if (!currentStep.workers || currentStep.workers.length === 0) return { safe: true };
 
-        for (let s of allStocks) {
+        // 僅針對目前指派遭受異動的員工進行檢核 
+        for (let worker of currentStep.workers) {
+            const baseG = getWorkerBaseStock(worker);
+            
             const getWorkingStatus = (dStr) => {
-                const baseCode = getShift(s, dStr);
-                const isHoliday = baseCode.includes('R') || baseCode === 'AR';
+                const bCode = getShift(baseG, dStr);
+                let isWorking = !(bCode.includes('R') || bCode === 'AR');
                 
-                // 基礎事實 A: 原本上班
-                let isWorking = !isHoliday;
-                // 基礎事實 B: 強制支援 MR2+N1
-                if (baseCode === 'MR2' && getShift(s, getNextDay(dStr)) === 'N1') isWorking = true;
-                
-                // 方案事實: 如果在請假期間內有全額代班
                 const inPlan = fullPlan.find(p => p.date === dStr);
-                if (inPlan && inPlan.isFull && inPlan.workers.includes(s)) isWorking = true;
-
-                // 核心邏輯: 如果該日期不在請假區間(targetDates)內，且原班表是休息，則絕對視為休息事實
-                if (!targetDates.includes(dStr) && isHoliday) isWorking = false;
-
+                if (inPlan && inPlan.workers.includes(worker)) {
+                    isWorking = true;
+                }
+                
+                if (!targetDates.includes(dStr) && (bCode.includes('R') || bCode === 'AR')) {
+                    isWorking = false;
+                }
                 return isWorking;
             };
 
-            // 掃描範圍：請假區間前後 8 天，確保 7 天窗口內必有休息
-            let scanDate = new Date(targetDates[0]);
-            scanDate.setDate(scanDate.getDate() - 8);
+            let scanD = new Date(currentStep.date);
+            scanD.setDate(scanD.getDate() - 6);
             
             let streak = 0;
-            for(let i=0; i<30; i++) {
-                let ds = scanDate.toISOString().split('T')[0];
+            let startStreakDate = '';
+            for(let i=0; i<13; i++) {
+                let ds = scanD.toISOString().split('T')[0];
                 if (getWorkingStatus(ds)) {
+                    if (streak === 0) startStreakDate = ds;
                     streak++;
-                    if (streak >= 7) return false;
+                    if (streak >= 7) {
+                        return { safe: false, reason: `若指派強制代班，將導致人員 [${worker}] 從 ${startStreakDate} 起連續上班 7 天。` };
+                    }
                 } else {
-                    streak = 0; // 只要有一個點是休息事實，計數器清零
+                    streak = 0;
                 }
-                scanDate.setDate(scanDate.getDate() + 1);
+                scanD.setDate(scanD.getDate() + 1);
             }
         }
-        return true;
+        return { safe: true };
     }
 
     return backtrack(0, []);
 }
 
 function renderResults(sols) {
-    document.getElementById('resultHeader').classList.remove('hidden');
     const out = document.getElementById('resultContent');
     if (sols.length === 0) {
-        out.innerHTML = `<div class="error-msg">目前條件下無可行方案。請確認是否違反「連續上班不超過 6 天」之原則。</div>`;
+        let msg = deepestFailReason || "目前設定條件深度衝突，無法演算出合法路徑。";
+        out.innerHTML = `<div class="alert">
+            <h4 style="margin:0 0 10px 0; display:flex; align-items:center; gap:8px;">⚠️ 無法生成排班方案</h4>
+            <p style="margin:0; font-size:15px; line-height:1.6;"><strong>阻擋原因分析：</strong><br>${msg}</p>
+        </div>`;
         return;
     }
 
-    let html = '';
-    sols.forEach((sol, i) => {
+    let html = `<h2 style="padding:0 24px; margin-top:10px;">✅ 共分析出 ${sols.length} 組可行排程</h2><div style="padding: 0 24px;">`;
+    
+    // 最多只渲染前 100 筆，避免 DOM 過於肥大而凍結
+    let renderCount = Math.min(sols.length, 100);
+    
+    for(let i = 0; i < renderCount; i++) {
+        let sol = sols[i];
         html += `<div class="solution-card">
-                    <div class="solution-title">可行方案 ${i + 1}</div>
-                    <div class="solution-body">`;
+                    <div class="solution-header">可行方案 ${i + 1}</div>
+                    <div class="solution-content">`;
         sol.forEach(d => {
-            html += `<div class="day-line"><span class="date-tag">${d.date}</span> <span>${d.desc}</span></div>`;
+            html += `<div class="timeline-item">
+                        <span class="date-badge">${d.date.substring(5)}</span> 
+                        <span class="desc-text">${d.desc}</span>
+                     </div>`;
         });
         html += `</div></div>`;
-    });
+    }
+
+    if (sols.length > 100) {
+        html += `<div style="text-align:center; padding: 20px; color: var(--secondary);">總計 ${sols.length} 組方案，因效能考量僅顯示前 100 組。您可以透過增加「強制手動指定」條件來限縮範圍。</div>`;
+    }
+
+    html += `</div>`;
     out.innerHTML = html;
 }
 </script>
