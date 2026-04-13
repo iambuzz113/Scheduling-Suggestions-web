@@ -316,6 +316,45 @@
             margin-bottom: 20px;
             display: inline-block;
         }
+
+        /* Reference Table Styles */
+        .ref-table-wrapper {
+            overflow-x: auto;
+            border-radius: var(--radius-md);
+            overflow: hidden;
+            border: 1px solid var(--border);
+        }
+
+        .ref-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 15px;
+            font-weight: 500;
+            text-align: center;
+        }
+
+        .ref-table th, .ref-table td {
+            border: 1px solid var(--border);
+            padding: 8px 4px;
+            min-width: 45px;
+        }
+
+        .ref-header-cell {
+            background-color: #fef08a; /* 黃底 */
+            color: #422006;
+        }
+
+        .ref-stock-cell {
+            background-color: #fecaca; /* 粉底 */
+            color: #7f1d1d;
+            white-space: nowrap;
+        }
+        
+        .ref-highlight-col {
+            border-left: 2px solid var(--primary) !important;
+            border-right: 2px solid var(--primary) !important;
+            background-color: #eff6ff; 
+        }
     </style>
 </head>
 <body>
@@ -376,6 +415,13 @@
 
 <!-- Wizard 互動區 -->
 <div class="layout hidden" id="wizardArea">
+    <div class="card" id="refTableCard">
+        <h3 style="margin-top:0; margin-bottom: 12px; font-size: 16px; color: var(--secondary);">📍 基準排班參考區間 (±3天)</h3>
+        <div class="ref-table-wrapper">
+            <table class="ref-table" id="refTable"></table>
+        </div>
+    </div>
+
     <div class="card">
         <div class="wizard-header">
             <h2 class="wizard-title" id="wizardTitle">第 X 步：請選擇安排</h2>
@@ -643,12 +689,14 @@ function renderWizardStep() {
     const optionsContainer = document.getElementById('wizardOptions');
     const titleObj = document.getElementById('wizardTitle');
     const btnBack = document.getElementById('btnBack');
+    const refTableCard = document.getElementById('refTableCard');
     
     // 渲染歷史紀錄
     renderHistory();
     
     if (currentStepIndex >= calculationDates.length) {
         // 完成
+        refTableCard.classList.add('hidden');
         titleObj.innerText = "✨ 恭喜完成！排班已全數推演合法";
         btnBack.style.display = 'block';
         optionsContainer.innerHTML = `
@@ -663,6 +711,9 @@ function renderWizardStep() {
 
     let targetDate = calculationDates[currentStepIndex];
     let lShift = getShift(currentLeaveStock, targetDate);
+    
+    refTableCard.classList.remove('hidden');
+    renderReferenceTable(targetDate);
     
     titleObj.innerText = `第 ${currentStepIndex + 1} 步：請選擇 ${targetDate.substring(5)} (${currentLeaveStock}股 ${lShift}) 的安排`;
     btnBack.style.display = currentStepIndex > 0 ? 'block' : 'none';
@@ -743,6 +794,56 @@ function renderHistory() {
                  </div>`;
     });
     itemsContainer.innerHTML = html;
+}
+
+function renderReferenceTable(targetDateStr) {
+    const tableObj = document.getElementById('refTable');
+    if (!tableObj) return;
+
+    let targetDate = new Date(targetDateStr);
+    let dates = [];
+    for(let i = -3; i <= 3; i++) {
+        let d = new Date(targetDate);
+        d.setDate(d.getDate() + i);
+        dates.push(d);
+    }
+
+    const weekdays = ['日', '一', '二', '三', '四', '五', '六'];
+
+    let row1 = `<tr><th class="ref-header-cell">日</th>`;
+    dates.forEach((d, i) => {
+        let isToday = (i === 3);
+        let cls = "ref-header-cell" + (isToday ? " ref-highlight-col" : "");
+        row1 += `<th class="${cls}">${d.getDate()}</th>`;
+    });
+    row1 += `</tr>`;
+
+    let row2 = `<tr><th class="ref-header-cell">星期</th>`;
+    dates.forEach((d, i) => {
+        let isToday = (i === 3);
+        let cls = "ref-header-cell" + (isToday ? " ref-highlight-col" : "");
+        row2 += `<th class="${cls}">${weekdays[d.getDay()]}</th>`;
+    });
+    row2 += `</tr>`;
+
+    let stocks = ['A', 'B', 'C', 'D'];
+    let stockRows = '';
+    stocks.forEach(stock => {
+        stockRows += `<tr><td class="ref-stock-cell">${stock}股</td>`;
+        dates.forEach((d, i) => {
+            let isToday = (i === 3);
+            let ds = d.toISOString().split('T')[0];
+            let shift = getShift(stock, ds);
+            
+            let cellStyle = shift.includes('R') ? 'color: #94a3b8; font-size: 13px;' : 'font-weight: 600;';
+            let cls = (isToday ? "ref-highlight-col" : "");
+            
+            stockRows += `<td class="${cls}"><span style="${cellStyle}">${shift}</span></td>`;
+        });
+        stockRows += `</tr>`;
+    });
+
+    tableObj.innerHTML = row1 + row2 + stockRows;
 }
 
 function solve(dates, lStock) {
