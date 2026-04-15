@@ -335,8 +335,9 @@
 
         .ref-table th, .ref-table td {
             border: 1px solid var(--border);
-            padding: 8px 4px;
-            min-width: 45px;
+            padding: 4px 2px;
+            min-width: 32px;
+            font-size: 13px;
         }
 
         .ref-header-cell {
@@ -355,6 +356,32 @@
             border-right: 2px solid var(--primary) !important;
             background-color: #eff6ff; 
         }
+
+        /* Date Pills for Extra Manpower */
+        .date-pills-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            margin-top: 8px;
+        }
+        .date-pill {
+            background: white;
+            border: 1px solid var(--border);
+            color: var(--secondary);
+            padding: 4px 10px;
+            border-radius: 100px;
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            outline: none;
+        }
+        .date-pill.active {
+            background: #eff6ff;
+            border-color: var(--primary);
+            color: var(--primary);
+            font-weight: 700;
+        }
     </style>
 </head>
 <body>
@@ -365,22 +392,22 @@
         <div class="form-grid">
             <div class="input-group">
                 <label>請假模式</label>
-                <select id="leaveMode" onchange="toggleMode()">
+                <select id="leaveMode" onchange="toggleMode(); resetAdvancedOptions()">
                     <option value="single">請假一日</option>
                     <option value="multi" selected>多日連續請假</option>
                 </select>
             </div>
             <div class="input-group">
                 <label id="dateLabel">開始日期</label>
-                <input type="date" id="startDate" onchange="handleDateChange()">
+                <input type="date" id="startDate" onchange="handleDateChange(); resetAdvancedOptions()">
             </div>
             <div id="endDateGroup" class="input-group">
                 <label>結束日期</label>
-                <input type="date" id="endDate">
+                <input type="date" id="endDate" onchange="resetAdvancedOptions()">
             </div>
             <div class="input-group">
                 <label>請假股別</label>
-                <select id="leaveStock" onchange="updateDynamicSelects()">
+                <select id="leaveStock" onchange="resetAdvancedOptions()">
                     <option value="" disabled selected>請選擇股別</option>
                     <option value="A">A 股</option>
                     <option value="B">B 股</option>
@@ -475,7 +502,7 @@ function toggleMode() {
     const isSingle = document.getElementById('leaveMode').value === 'single';
     document.getElementById('endDateGroup').classList.toggle('hidden', isSingle);
     document.getElementById('dateLabel').innerText = isSingle ? "請假日期" : "開始日期";
-    if (!isSingle) handleDateChange();
+    handleDateChange();
 }
 
 function handleDateChange() {
@@ -487,6 +514,30 @@ function handleDateChange() {
             document.getElementById('endDate').value = d.toISOString().split('T')[0];
         }
     }
+}
+
+// 防呆重設，一旦切換主條件即清空衍生配置
+function resetAdvancedOptions() {
+    extraManpowers = [];
+    manualConstraints = [];
+    renderManpower();
+    renderConstraints();
+}
+
+function getProjectDates() {
+    const sStr = document.getElementById('startDate').value;
+    const isSingle = document.getElementById('leaveMode').value === 'single';
+    const eStr = isSingle ? sStr : document.getElementById('endDate').value;
+    if (!sStr || (!isSingle && !eStr)) return [];
+    
+    let dates = [];
+    let cur = new Date(sStr);
+    let end = new Date(eStr);
+    while(cur <= end) {
+        dates.push(cur.toISOString().split('T')[0]);
+        cur.setDate(cur.getDate() + 1);
+    }
+    return dates;
 }
 
 // -- Helpers --
@@ -509,15 +560,11 @@ function getWorkerBaseStock(workerId) {
     return workerId.split('-')[0];
 }
 
-// -- DOM 增減邏輯 (與舊版相同) --
-function updateDynamicSelects() {
-    renderManpower();
-    renderConstraints();
-}
+// -- DOM 增減邏輯 --
 
 function addManpower() {
     if (extraManpowers.length >= 3) return alert("最多只能新增 3 筆額外人力設定。");
-    extraManpowers.push({ id: ++idCounter, stock: '', count: 1 });
+    extraManpowers.push({ id: ++idCounter, stock: '', count: 1, mode: 'all', customDates: [] });
     renderManpower();
 }
 
@@ -529,7 +576,7 @@ function removeManpower(id) {
 
 function addConstraint() {
     const sDate = document.getElementById('startDate').value;
-    manualConstraints.push({ id: ++idCounter, date: sDate, part: '全額', worker: '' });
+    manualConstraints.push({ id: ++idCounter, date: sDate, part: '--請點選--', worker: '' });
     renderConstraints();
 }
 
@@ -538,11 +585,22 @@ function removeConstraint(id) {
     renderConstraints();
 }
 
-function generateWorkers() {
+function generateWorkers(dateStr) {
     let leaveStock = document.getElementById('leaveStock').value;
     let counts = { A: 1, B: 1, C: 1, D: 1 };
+    
     extraManpowers.forEach(m => {
-        if (m.stock) counts[m.stock] += parseInt(m.count) || 0;
+        if (!m.stock) return;
+        let apply = false;
+        if (m.mode === 'all') {
+            apply = true;
+        } else if (m.mode === 'custom' && dateStr && m.customDates.includes(dateStr)) {
+            apply = true;
+        }
+        
+        if (apply) {
+            counts[m.stock] += parseInt(m.count) || 0;
+        }
     });
 
     let workers = [];
@@ -560,24 +618,54 @@ function generateWorkers() {
 
 function renderManpower() {
     let leave = document.getElementById('leaveStock').value;
+    let projDates = getProjectDates();
     let html = '';
+    
     extraManpowers.forEach(m => {
-        let opts = `<option value="" disabled ${!m.stock ? 'selected' : ''}>請選擇股別</option>`;
+        let opts = `<option value="" disabled ${!m.stock ? 'selected' : ''}>請選擇</option>`;
         ['A','B','C','D'].forEach(s => {
-            if (s !== leave) opts += `<option value="${s}" ${m.stock === s ? 'selected' : ''}>${s} 股</option>`;
+            if (s !== leave) opts += `<option value="${s}" ${m.stock === s ? 'selected' : ''}>${s}股</option>`;
         });
+        
+        let dateHtml = '';
+        if (projDates.length > 0) {
+            let pills = '';
+            projDates.forEach(d => {
+                let md = d.substring(5); // 04-15
+                let isActive = m.customDates.includes(d);
+                let btnClass = isActive ? "date-pill active" : "date-pill";
+                pills += `<button class="${btnClass}" onclick="toggleManpowerDate(${m.id}, '${d}')">${md}</button>`;
+            });
+            
+            let isAll = (m.mode === 'all');
+            
+            dateHtml = `
+            <div style="margin-top:12px; border-top:1px dashed var(--border); padding-top:10px;">
+                <div style="margin-bottom:8px; display:flex; gap:16px; font-size:14px; color:var(--secondary);">
+                    <label style="cursor:pointer; font-weight:600;"><input type="radio" name="m_mode_${m.id}" onchange="updateManpower(${m.id}, 'mode', 'all')" ${isAll ? 'checked':''}> 套用全範圍</label>
+                    <label style="cursor:pointer; font-weight:600;"><input type="radio" name="m_mode_${m.id}" onchange="updateManpower(${m.id}, 'mode', 'custom')" ${!isAll ? 'checked':''}> 自訂特定日期</label>
+                </div>
+                <div class="date-pills-container ${isAll ? 'hidden' : ''}">
+                    ${pills}
+                </div>
+            </div>`;
+        }
+
         html += `
-        <div class="list-item">
-            <div style="display:flex; gap:10px; align-items:center;">
-                <select onchange="updateManpower(${m.id}, 'stock', this.value); updateDynamicSelects()">${opts}</select>
-                <span style="color:var(--secondary); font-size:14px;">增加:</span>
-                <select onchange="updateManpower(${m.id}, 'count', this.value); updateDynamicSelects()">
-                    <option value="1" ${m.count==1?'selected':''}>1 人</option>
-                    <option value="2" ${m.count==2?'selected':''}>2 人</option>
-                    <option value="3" ${m.count==3?'selected':''}>3 人</option>
-                </select>
+        <div class="list-item" style="display:block;">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+                <div style="display:flex; gap:10px; align-items:center;">
+                    <select onchange="updateManpower(${m.id}, 'stock', this.value); renderConstraints()">${opts}</select>
+                    <span style="color:var(--secondary); font-size:14px;">增加:</span>
+                    <select onchange="updateManpower(${m.id}, 'count', this.value); renderConstraints()">
+                        <option value="1" ${m.count==1?'selected':''}>1人</option>
+                        <option value="2" ${m.count==2?'selected':''}>2人</option>
+                        <option value="3" ${m.count==3?'selected':''}>3人</option>
+                    </select>
+                </div>
+                <button class="btn-danger" onclick="removeManpower(${m.id})">移除</button>
             </div>
-            <button class="btn-danger" onclick="removeManpower(${m.id})">移除</button>
+            ${dateHtml}
         </div>`;
     });
     document.getElementById('extraManpowerList').innerHTML = html;
@@ -585,16 +673,50 @@ function renderManpower() {
 
 function updateManpower(id, key, val) {
     let item = extraManpowers.find(m => m.id === id);
-    if (item) item[key] = val;
+    if (!item) return;
+    item[key] = val;
+    if (key === 'mode') {
+        renderManpower();
+    }
+}
+
+function toggleManpowerDate(id, dStr) {
+    let item = extraManpowers.find(m => m.id === id);
+    if (!item) return;
+    let idx = item.customDates.indexOf(dStr);
+    if (idx === -1) item.customDates.push(dStr);
+    else item.customDates.splice(idx, 1);
+    renderManpower();
 }
 
 function renderConstraints() {
-    let workers = generateWorkers();
-    let modes = ['全額', '指定代班一', '指定代班二'];
+    let modes = ['--請點選--', '全額', '拆班前半段', '拆班後半段', '第二請假股別'];
     let html = '';
     manualConstraints.forEach(m => {
-        let wOpts = `<option value="" disabled ${!m.worker ? 'selected' : ''}>請選擇代班者</option>`;
-        workers.forEach(w => wOpts += `<option value="${w}" ${m.worker === w ? 'selected' : ''}>人員 ${w}</option>`);
+        let workersForThisDate = generateWorkers(m.date);
+        let isSecondMode = (m.part === '第二請假股別');
+        let targetList = [];
+        let defaultText = '';
+        
+        if (isSecondMode) {
+            defaultText = '請選擇股別';
+            let lStock = document.getElementById('leaveStock').value;
+            ['A','B','C','D'].forEach(s => {
+                if (s === lStock) return;
+                let bShift = getShift(s, m.date);
+                if (!(bShift.includes('R') || bShift === 'AR')) {
+                    targetList.push({val: s, label: s + ' 股'});
+                }
+            });
+        } else {
+            defaultText = '請選擇代班者';
+            workersForThisDate.forEach(w => targetList.push({val: w, label: '人員 ' + w}));
+        }
+
+        let wOpts = `<option value="" disabled ${!m.worker ? 'selected' : ''}>${defaultText}</option>`;
+        targetList.forEach(item => {
+            wOpts += `<option value="${item.val}" ${m.worker === item.val ? 'selected' : ''}>${item.label}</option>`;
+        });
         
         let pOpts = '';
         modes.forEach(p => pOpts += `<option value="${p}" ${m.part === p ? 'selected' : ''}>${p}</option>`);
@@ -614,7 +736,19 @@ function renderConstraints() {
 
 function updateConstraint(id, key, val) {
     let item = manualConstraints.find(m => m.id === id);
-    if (item) item[key] = val;
+    if (!item) return;
+    let oldPart = item.part;
+    item[key] = val;
+    if (key === 'date') {
+        item.worker = ''; 
+    }
+    if (key === 'part') {
+        if ((oldPart === '第二請假股別') !== (val === '第二請假股別')) {
+            item.worker = '';
+        }
+    }
+    // Re-render
+    renderConstraints();
 }
 
 // -- 核心運算 --
@@ -637,13 +771,8 @@ function startWizard() {
     if (!lStock) return alert("請先選擇請假股別！");
     if (sStr > eStr) return alert("結束日期不可小於開始日期！");
 
-    const dates = [];
-    let cur = new Date(sStr);
-    let end = new Date(eStr);
-    while(cur <= end) {
-        dates.push(cur.toISOString().split('T')[0]);
-        cur.setDate(cur.getDate() + 1);
-    }
+    const dates = getProjectDates();
+    if(dates.length === 0) return alert("日期異常。");
     
     calculationDates = dates;
     currentLeaveStock = lStock;
@@ -810,7 +939,8 @@ function renderReferenceTable(targetDateStr) {
 
     const weekdays = ['日', '一', '二', '三', '四', '五', '六'];
 
-    let row1 = `<tr><th class="ref-header-cell">日</th>`;
+    let month = targetDate.getMonth() + 1;
+    let row1 = `<tr><th class="ref-header-cell">${month}月</th>`;
     dates.forEach((d, i) => {
         let isToday = (i === 3);
         let cls = "ref-header-cell" + (isToday ? " ref-highlight-col" : "");
@@ -847,13 +977,12 @@ function renderReferenceTable(targetDateStr) {
 }
 
 function solve(dates, lStock) {
-    const availableWorkers = generateWorkers();
-
     function backtrack(idx, history) {
         if (idx === dates.length) return [history];
         
         const date = dates[idx];
         const lShift = getShift(lStock, date);
+        const availableWorkers = generateWorkers(date);
         
         // 若休假日，無須代班
         if (lShift.includes('R') || lShift === 'AR') {
@@ -862,41 +991,82 @@ function solve(dates, lStock) {
 
         let opts = [];
 
-        // 全額代班
-        for (let w of availableWorkers) {
-            const base = getWorkerBaseStock(w);
-            const sShift = getShift(base, date);
-            if (['NR1', 'NR2', 'MR1', 'MR2'].includes(sShift)) {
-                if (sShift === 'MR2' && lShift.match(/^A[1-5]$/)) continue; // MR2 剛休完上中班很怪
-                opts.push({ date, type: 'full', desc: `全額由 ${w} (${sShift}) 代班`, workers: [w], assignments: { first: w, second: "" } });
-            }
-        }
+        // 第二請假股別邏輯 (12H 雙重請假機制)
+        let secondLeaveConstraint = manualConstraints.find(c => c.date === date && c.part === '第二請假股別' && c.worker);
+        let secondLeaveStock = secondLeaveConstraint ? secondLeaveConstraint.worker : null;
 
-        // 拆班邏輯
-        if (lShift.match(/^A[1-5]$/)) {
-            let p1s = availableWorkers.filter(w => getShift(getWorkerBaseStock(w), date).match(/^M[1-5]$/));
-            let p2s = availableWorkers.filter(w => getShift(getWorkerBaseStock(w), getNextDay(date)).match(/^N[1-5]$/));
-            for(let w1 of p1s) {
-                for(let w2 of p2s) {
-                    opts.push({ date, type: 'split', desc: `拆班支援：(前半段:${w1} / 後半段:${w2})`, workers: [w1, w2], assignments: { first: w1, second: w2 } });
+        if (secondLeaveStock) {
+            let secondShift = getShift(secondLeaveStock, date);
+            
+            let allStocks = ['A', 'B', 'C', 'D'];
+            let absentStocks = [lStock, secondLeaveStock];
+            let availStocks = allStocks.filter(s => !absentStocks.includes(s));
+            
+            let s1 = availStocks[0];
+            let s2 = availStocks[1];
+            
+            let w1s = availableWorkers.filter(w => getWorkerBaseStock(w) === s1);
+            let w2s = availableWorkers.filter(w => getWorkerBaseStock(w) === s2);
+            
+            let mapRole = (sCode) => {
+                if (sCode.includes('R') || sCode === 'AR') return 'O';
+                return sCode.replace(/[0-9]/g, '');
+            };
+            
+            let role1 = mapRole(getShift(s1, date));
+            let role2 = mapRole(getShift(s2, date));
+            
+            for (let w1 of w1s) {
+                for (let w2 of w2s) {
+                    if (role1 === 'N' || role2 === 'A') {
+                        opts.push({ date, type: 'double', desc: `(${lStock}股 ${lShift} 與 ${secondLeaveStock}股 ${secondShift} 雙重請假) -> [前半段 23:00-11:00 :${w1} / 後半段 11:00-23:00 :${w2}]`, workers: [w1, w2], assignments: { first: w1, second: w2 } });
+                    } else if (role1 === 'A' || role2 === 'N') {
+                        opts.push({ date, type: 'double', desc: `(${lStock}股 ${lShift} 與 ${secondLeaveStock}股 ${secondShift} 雙重請假) -> [前半段 23:00-11:00 :${w2} / 後半段 11:00-23:00 :${w1}]`, workers: [w1, w2], assignments: { first: w2, second: w1 } });
+                    } else {
+                        opts.push({ date, type: 'double', desc: `(${lStock}股 ${lShift} 與 ${secondLeaveStock}股 ${secondShift} 雙重請假) -> [前半段 23:00-11:00 :${w1} / 後半段 11:00-23:00 :${w2}]`, workers: [w1, w2], assignments: { first: w1, second: w2 } });
+                        opts.push({ date, type: 'double', desc: `(${lStock}股 ${lShift} 與 ${secondLeaveStock}股 ${secondShift} 雙重請假) -> [前半段 23:00-11:00 :${w2} / 後半段 11:00-23:00 :${w1}]`, workers: [w1, w2], assignments: { first: w2, second: w1 } });
+                    }
                 }
             }
         } 
-        else if (lShift.match(/^M[1-5]$/)) {
-            let p1s = availableWorkers.filter(w => getShift(getWorkerBaseStock(w), date).match(/^N[1-5]$/));
-            let p2s = availableWorkers.filter(w => getShift(getWorkerBaseStock(w), date).match(/^A[1-5]$/));
-            for(let w1 of p1s) {
-                for(let w2 of p2s) {
-                    opts.push({ date, type: 'split', desc: `拆班支援：(前半段:${w1} / 後半段:${w2})`, workers: [w1, w2], assignments: { first: w1, second: w2 } });
+        else {
+            // 單人請假 - 全額代班
+            for (let w of availableWorkers) {
+                const base = getWorkerBaseStock(w);
+                const sShift = getShift(base, date);
+                if (['NR1', 'NR2', 'MR1', 'MR2'].includes(sShift)) {
+                    if (sShift === 'MR2' && lShift.match(/^A[1-5]$/)) continue; 
+                    let shiftText = lShift.match(/^M/) ? '07:00-15:00' : (lShift.match(/^A/) ? '15:00-23:00' : '23:00-07:00');
+                    opts.push({ date, type: 'full', desc: `(${lStock}股 ${lShift}) 全額代班 ${shiftText} :${w}`, workers: [w], assignments: { first: w, second: "" } });
                 }
             }
-        }
-        else if (lShift.match(/^N[1-5]$/)) {
-            let wMs = availableWorkers.filter(w => getShift(getWorkerBaseStock(w), date).match(/^M[1-5]$/));
-            let wAs = availableWorkers.filter(w => getShift(getWorkerBaseStock(w), date).match(/^A[1-5]$/));
-            for(let wM of wMs) {
-                for(let wA of wAs) {
-                    opts.push({ date, type: 'split', desc: `調班支援：(早班調夜班+4H:${wM} / 中班提前上班+4H:${wA})`, workers: [wM, wA], assignments: { first: wM, second: wA } });
+
+            // 單人請假 - 拆班邏輯
+            if (lShift.match(/^A[1-5]$/)) {
+                let p1s = availableWorkers.filter(w => getShift(getWorkerBaseStock(w), date).match(/^M[1-5]$/));
+                let p2s = availableWorkers.filter(w => getShift(getWorkerBaseStock(w), getNextDay(date)).match(/^N[1-5]$/));
+                for(let w1 of p1s) {
+                    for(let w2 of p2s) {
+                        opts.push({ date, type: 'split', desc: `(${lStock}股 ${lShift}) 拆班支援：(前半段 15:00-19:00 :${w1} / 後半段 19:00-23:00 :${w2})`, workers: [w1, w2], assignments: { first: w1, second: w2 } });
+                    }
+                }
+            } 
+            else if (lShift.match(/^M[1-5]$/)) {
+                let p1s = availableWorkers.filter(w => getShift(getWorkerBaseStock(w), date).match(/^N[1-5]$/));
+                let p2s = availableWorkers.filter(w => getShift(getWorkerBaseStock(w), date).match(/^A[1-5]$/));
+                for(let w1 of p1s) {
+                    for(let w2 of p2s) {
+                        opts.push({ date, type: 'split', desc: `(${lStock}股 ${lShift}) 拆班支援：(前半段 07:00-11:00 :${w1} / 後半段 11:00-15:00 :${w2})`, workers: [w1, w2], assignments: { first: w1, second: w2 } });
+                    }
+                }
+            }
+            else if (lShift.match(/^N[1-5]$/)) {
+                let wMs = availableWorkers.filter(w => getShift(getWorkerBaseStock(w), date).match(/^M[1-5]$/));
+                let wAs = availableWorkers.filter(w => getShift(getWorkerBaseStock(w), date).match(/^A[1-5]$/));
+                for(let wM of wMs) {
+                    for(let wA of wAs) {
+                        opts.push({ date, type: 'split', desc: `(${lStock}股 ${lShift}) 遇夜班改 12H 制：(前半段 23:00-11:00 :${wM} / 後半段 11:00-23:00 :${wA})`, workers: [wM, wA], assignments: { first: wM, second: wA } });
+                    }
                 }
             }
         }
@@ -905,15 +1075,15 @@ function solve(dates, lStock) {
         let dayConstraints = manualConstraints.filter(m => m.date === date);
         opts = opts.filter(opt => {
             for (let c of dayConstraints) {
-                if (!c.worker) continue;
+                if (!c.worker || c.part === '--請點選--' || c.part === '第二請假股別') continue;
                 if (c.part === '全額') {
                     if (opt.type !== 'full') return false;
                     if (opt.assignments.first !== c.worker) return false;
-                } else if (c.part === '指定代班一') {
-                    if (opt.type !== 'split') return false;
+                } else if (c.part === '拆班前半段') {
+                    if (opt.type !== 'split' && opt.type !== 'double') return false;
                     if (opt.assignments.first !== c.worker) return false;
-                } else if (c.part === '指定代班二') {
-                    if (opt.type !== 'split') return false;
+                } else if (c.part === '拆班後半段') {
+                    if (opt.type !== 'split' && opt.type !== 'double') return false;
                     if (opt.assignments.second !== c.worker) return false;
                 }
             }
