@@ -1229,7 +1229,7 @@ function solve(dates, lStock) {
                     let shiftText = lShift.match(/^M/) ? '07:00-15:00' : (lShift.match(/^A/) ? '15:00-23:00' : '23:00-07:00');
                     let startH = lShift.match(/^M/) ? 7 : (lShift.match(/^A/) ? 15 : 23);
                     let endH = startH + 8;
-                    let opt = { date, type: 'full', desc: `(${lStock}股 ${lShift}) 全額代班 ${shiftText} :${formatWorker(w)}`, workers: [w], assignments: { first: w, second: "" } };
+                    let opt = { date, type: 'full', desc: `(${lStock}股 ${lShift}) 全額代班：[${formatWorker(w)}] ${shiftText}`, workers: [w], assignments: { first: w, second: "" } };
                     if (checkFatigue(w, date, startH, endH, dates)) opt.warning = `${formatWorker(w)} 兩次上班間隔小於等於12H`;
                     opts.push(opt);
                 }
